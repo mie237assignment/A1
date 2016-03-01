@@ -1,0 +1,89 @@
+---
+title: "MIE237 Assignment 1"
+date: "Due: 2016-03-11 17:00:00"
+output: pdf_document
+---
+
+```{r, echo=FALSE, message = FALSE}
+library(dplyr)
+brands <- c("Camtran", "Nema", "Moloney")
+sizes <- c("100KVA", "75KVA", "50KVA")
+combos <- expand.grid(brands, sizes)
+
+dgen <- function(seed) {
+  brands <- c("Camtran", "Nema", "Moloney")
+  sizes <- c("100KVA", "75KVA", "50KVA")
+  combos <- expand.grid(brands, sizes)
+  set.seed(seed)
+  n <- sample(120:140, 1)
+  probs <- c(3, 6, 9, 4, 4, 4, 9, 6, 3)
+  probs <- probs/sum(probs)
+  b_s <- combos[sample(1:9, n, prob=probs, replace = TRUE),]
+  age <- numeric(n)
+  beta <- runif(3, 1.3, 1.9)
+  eta <- runif(3, 20, 50)
+  age[b_s$Var2 == "100KVA"] <- rweibull(sum(b_s$Var2 == "100KVA"),
+                                      beta[1], eta[1])
+  age[b_s$Var2 == "75KVA"] <- rweibull(sum(b_s$Var2 == "75KVA"),
+                                     beta[2], eta[2])
+  age[b_s$Var2 == "50KVA"] <- rweibull(sum(b_s$Var2 == "50KVA"),
+                                     beta[3], eta[3])
+
+  ID <- replicate(n, paste(c(sample(LETTERS, 2), 
+                           sample(0:9, 4, repl=TRUE)), collapse=""))
+  
+  intercept <- runif(1, 10, 20)
+  beta_1 <- runif(1, -3, -1)
+  beta_2 <- runif(1, 4, 11)
+  beta_Age <- 1/2 + runif(1, -0.1, 0.1)
+  
+  
+  genmat <- cbind(model.matrix(~ b_s$Var1), age)
+  X <- matrix(c(intercept, beta_1, beta_2, beta_Age), 4, 1)
+  rust <- as.numeric(intercept + genmat %*% X + rnorm(n, 0, 25))
+  rust <- pmin(100, rust)
+  rust <- pmax(0, rust)
+
+  tx <- data_frame(ID = ID, Manufacturer = b_s$Var1, Size = b_s$Var2,
+                 Age = age, Rust = rust)
+  
+  return(tx)
+}
+tx <- dgen(1)
+```
+
+
+## Instructions
+
+1. Your dataset's name starts with the first two letters of your family name, followed by the first two letters of your given name, followed by the last two digits of your student number.
+
+2. The assignment must be done using R Markdown. *No exceptions.* You will submit the R Markdown file and the document it makes. *Don't make any further alterations to the file it makes.* Use the course website to submit your work.
+
+3. **Everyone's dataset will be slightly altered the afternoon before the assignment is due.** It will change all the calculations, but not any conclusions you might make. 
+
+4. You can render the R Markdown file into your choice of HTML, PDF, or Word. Note that PDF format requires a LaTeX installation and Word may require Word to be installed. 
+
+5. The beauty of your report will not be judged. Don't feel you need to spend too much time on purely aesthetic matters. You can if you like, but it won't affect your mark.
+
+6. The `.Rmd` files for the lectures and labs contain examples of everything you'll need for this assignment. Much of the lectures and some of the labs also contain lovely mathematical typesetting, usually enclosed by pairs of `$` or `$$` symbols. You definitely don't need to worry about that. You won't be doing any mathematical typesetting in this assignment. Just focus on the `R` code.
+
+## Questions
+
+The assignment is essentially a repeat of the test, plus a regression question. But rather than using pen, paper, and calculator, you'll use the computer. 
+
+The dataset has `r ncol(tx)` variables: ``r paste(colnames(tx), collapse=", ")``. The  variable ``r colnames(tx)[1]`` contains the serial number of the transformer. The variable ``r colnames(tx)[2]`` contains the manufacturer name, one of: ``r paste(brands, collapse=", ")``. The variable ``r colnames(tx)[3]`` contains a description of the transformer's power rating. The variable ``r colnames(tx)[4]`` contains the age in years of the transformer at the time of its failure. The variable ``r colnames(tx)[5]`` contains a number from 0 to 100 indicating the amount of corrosion that the transformer has.
+
+1. Produce a 95% confidence interval for the difference in mean age at failure between ``r brands[1]`` and ``r brands[3]`` transformers, commenting on any relevant assumptions you might have needed to make.
+
+2. The company wants to look at the `Manufacturer` and `Size` variables. 
+    a. Produce a 95% confidence interval for the proportion of transformers that are manufactured by Nema, commenting on any relevant assumptions you might have needed to make.
+    b. Perform the test of independence with null hypothesis (informally) expressed as: $H_0:$ `Manufacturer` and `Size` are independent, commenting on any relevant assumptions you might have needed to make.
+    
+3. The company wants to look at the `Age` and `Rust` variables. Perform the regression analysis to see if `Rust` (output) and `Age` (input) have a linear relationship. See if the slope is different from 0. Comment on any relevant assumptions you might have needed to make.
+
+## Additional comments
+
+The assignment should end up looking like a report for the company, as though you work there. (Although as I mentioned don't worry too much about purely aesthetic matters.)
+
+That means each question should contain a useful graphical and/or numerical summary of the relevant part of the data, followed by the analysis the question requires, followed by a practical conclusion. 
+
